@@ -23,30 +23,97 @@ export default function RoomForm({ room = null, onSuccess }) {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImages(files);
+    
+    // Validate file types and size
+    const validFiles = files.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB max
+      
+      if (!isImage) {
+        setError(`${file.name} is not a valid image file`);
+        return false;
+      }
+      if (!isValidSize) {
+        setError(`${file.name} exceeds 5MB size limit`);
+        return false;
+      }
+      return true;
+    });
+    
+    setImages(validFiles);
+    setError('');
   };
 
-  const uploadImages = async () => {
-    const imageUrls = [];
-    
-    for (const file of images) {
-      const fileName = `${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
+  const uploadImageToSupabase = async (file, userId) => {
+    try {
+      // Generate unique file path: rooms/{userId}/{timestamp}-{originalFilename}
+      const timestamp = Date.now();
+      const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
+      const filePath = `rooms/${userId}/${timestamp}-${fileName}`;
+      
+      console.log('📤 Uploading:', file.name, 'to path:', filePath);
+      
+      // Upload file to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
         .from('room-images')
-        .upload(fileName, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (error) {
-        console.error('Upload error:', error);
-        continue;
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw new Error(uploadError.message || 'Upload failed');
       }
 
+      if (!data || !data.path) {
+        throw new Error('Upload succeeded but no path returned');
+      }
+
+      console.log('✅ Upload successful, path:', data.path);
+
+      // Get public URL - Supabase returns { data: { publicUrl } }
       const { data: { publicUrl } } = supabase.storage
         .from('room-images')
-        .getPublicUrl(fileName);
+        .getPublicUrl(data.path);
       
-      imageUrls.push(publicUrl);
+      if (!publicUrl) {
+        throw new Error('Failed to generate public URL');
+      }
+
+      console.log('🔗 Public URL:', publicUrl);
+      return publicUrl;
+    } catch (err) {
+      console.error('💥 Error uploading image:', err);
+      throw err;
+    }
+  };
+
+  const uploadImages = async (userId) => {
+    const imageUrls = [];
+    const errors = [];
+    
+    console.log(`Starting upload of ${images.length} images for user ${userId}`);
+    
+    for (const file of images) {
+      try {
+        const publicUrl = await uploadImageToSupabase(file, userId);
+        imageUrls.push(publicUrl);
+        console.log(`Successfully uploaded ${file.name}`);
+      } catch (err) {
+        const errorMessage = err.message || 'Unknown error';
+        console.error(`Failed to upload ${file.name}:`, errorMessage);
+        errors.push(`${file.name}: ${errorMessage}`);
+      }
     }
     
+    if (errors.length > 0) {
+      const errorMsg = `Upload failed:\n${errors.join('\n')}`;
+      console.error(errorMsg);
+      setError(errorMsg);
+    }
+    
+    console.log(`Upload complete. Successful: ${imageUrls.length}, Failed: ${errors.length}`);
     return imageUrls;
   };
 
@@ -66,8 +133,32 @@ export default function RoomForm({ room = null, onSuccess }) {
 
       let imageUrls = room?.images || [];
       
+      // For new rooms, require at least one image
+      if (!room && images.length === 0) {
+        setError('Please upload at least one image');
+        setLoading(false);
+        return;
+      }
+      
+      // Upload new images if any
       if (images.length > 0) {
-        imageUrls = await uploadImages();
+        console.log('Starting image upload process...');
+        const uploadedUrls = await uploadImages(user.id);
+        
+        if (uploadedUrls.length === 0) {
+          const errorMsg = 'Failed to upload images. Please check:\n' +
+            '1. Storage bucket "room-images" exists in Supabase\n' +
+            '2. Bucket is set to PUBLIC\n' +
+            '3. Check browser console for detailed errors';
+          setError(errorMsg);
+          setLoading(false);
+          return;
+        }
+        
+        console.log(`Successfully uploaded ${uploadedUrls.length} image(s)`);
+        
+        // For edits, append to existing images; for new rooms, use uploaded images
+        imageUrls = room ? [...imageUrls, ...uploadedUrls] : uploadedUrls;
       }
 
       const roomData = {
@@ -211,18 +302,23 @@ export default function RoomForm({ room = null, onSuccess }) {
 
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Room Images
+          Room Images {!room && <span className="text-red-500">*</span>}
         </label>
         <input
           type="file"
           multiple
           accept="image/*"
           onChange={handleImageChange}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-gray-600 file:text-blue-700 dark:file:text-gray-200 hover:file:bg-blue-100 dark:hover:file:bg-gray-500"
         />
         {images.length > 0 && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {images.length} file(s) selected
+          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+            ✓ {images.length} image{images.length > 1 ? 's' : ''} selected (max 5MB each)
+          </p>
+        )}
+        {!room && images.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Please upload at least one image
           </p>
         )}
       </div>
@@ -231,9 +327,9 @@ export default function RoomForm({ room = null, onSuccess }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Saving...' : room ? 'Update Room' : 'Add Room'}
+          {loading ? 'Uploading & Saving...' : room ? 'Update Room' : 'Add Room'}
         </button>
       </div>
     </form>

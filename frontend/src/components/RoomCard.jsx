@@ -1,12 +1,19 @@
 export default function RoomCard({ room }) {
+  // Safely get the first image URL
+  const imageUrl = room.images?.[0] || null;
+  
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
       <div className="h-48 overflow-hidden bg-gray-200 dark:bg-gray-700">
-        {room.images && room.images.length > 0 ? (
+        {imageUrl ? (
           <img 
-            src={room.images[0]} 
+            src={imageUrl} 
             alt={room.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">

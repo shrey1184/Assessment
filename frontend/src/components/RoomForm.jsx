@@ -146,11 +146,7 @@ export default function RoomForm({ room = null, onSuccess }) {
         const uploadedUrls = await uploadImages(user.id);
         
         if (uploadedUrls.length === 0) {
-          const errorMsg = 'Failed to upload images. Please check:\n' +
-            '1. Storage bucket "room-images" exists in Supabase\n' +
-            '2. Bucket is set to PUBLIC\n' +
-            '3. Check browser console for detailed errors';
-          setError(errorMsg);
+          setError('Failed to upload image');
           setLoading(false);
           return;
         }

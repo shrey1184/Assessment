@@ -65,26 +65,26 @@ export default function MyRooms() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading your rooms...</div>
+      <div className="flex justify-center items-center min-h-screen dark:bg-gray-900">
+        <div className="text-xl text-gray-600 dark:text-gray-300">Loading your rooms...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl text-red-600">Error: {error}</div>
+      <div className="flex justify-center items-center min-h-screen dark:bg-gray-900">
+        <div className="text-xl text-red-600 dark:text-red-400">Error: {error}</div>
       </div>
     );
   }
 
   if (editingRoom) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dark:bg-gray-900 min-h-screen">
         <button
           onClick={() => setEditingRoom(null)}
-          className="mb-4 text-blue-500 hover:text-blue-700"
+          className="mb-4 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
         >
           ← Back to My Rooms
         </button>
@@ -94,12 +94,12 @@ export default function MyRooms() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Rooms</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dark:bg-gray-900 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">My Rooms</h1>
 
       {rooms.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-xl text-gray-600 mb-4">You haven't added any rooms yet</p>
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">You haven't added any rooms yet</p>
           <a
             href="/add-room"
             className="inline-block bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600"

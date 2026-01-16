@@ -81,7 +81,7 @@ export default function MyRooms() {
 
   if (editingRoom) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dark:bg-gray-900 min-h-screen">
+      <div className="mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-32 py-8 dark:bg-gray-900 min-h-screen">
         <button
           onClick={() => setEditingRoom(null)}
           className="mb-4 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -94,7 +94,7 @@ export default function MyRooms() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dark:bg-gray-900 min-h-screen">
+    <div className="mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 py-8 dark:bg-gray-900 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">My Rooms</h1>
 
       {rooms.length === 0 ? (
@@ -108,7 +108,7 @@ export default function MyRooms() {
           </a>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {rooms.map((room) => (
             <div key={room.id} className="relative">
               <RoomCard room={room} />
